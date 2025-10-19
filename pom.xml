@@ -10,7 +10,7 @@
     <modules>
         <module>shared</module>
         <module>order-command-service</module>
-<!--        <module>order-projection</module>-->
+        <module>order-query-service</module>
 <!--        <module>saga-orchestrator</module>-->
 <!--        <module>infra</module>-->
     </modules>
