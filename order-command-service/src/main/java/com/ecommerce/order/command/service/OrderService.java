@@ -1,19 +1,23 @@
 package com.ecommerce.order.command.service;
 
+import com.ecommerce.order.command.domain.Order;
+import com.ecommerce.order.command.domain.mapper.DomainEventMapper;
+import com.ecommerce.order.command.domain.valueobject.CustomerId;
+import com.ecommerce.order.command.domain.valueobject.Money;
+import com.ecommerce.order.command.domain.valueobject.OrderItem;
 import com.ecommerce.order.command.dto.OrderRequest;
 import com.ecommerce.order.command.entity.Event;
 import com.ecommerce.order.command.entity.Outbox;
 import com.ecommerce.order.command.repository.EventRepository;
 import com.ecommerce.order.command.repository.OutboxRepository;
 import com.ecommerce.order.command.util.JsonUtil;
-import com.ecommerce.shared.events.OrderCreatedEvent;
+import com.ecommerce.shared.domain.DomainEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -27,79 +31,79 @@ public class OrderService {
 
     @Transactional
     public UUID createOrder(OrderRequest orderRequest) {
-        UUID orderId = UUID.randomUUID();
         UUID correlationId = UUID.randomUUID();
         UUID causationId = UUID.randomUUID();
-        Instant now = Instant.now();
         
         log.info("Creating order for customer: {} with correlationId: {}", 
                 orderRequest.getCustomerId(), correlationId);
 
-        // Calcular total e criar items do evento
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        var eventItems = orderRequest.getItems().stream()
-                .map(item -> {
-                    BigDecimal subtotal = item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
-                    return OrderCreatedEvent.OrderItem.builder()
-                            .productId(item.getProductId())
-                            .productName(item.getProductName())
-                            .quantity(item.getQuantity())
-                            .unitPrice(item.getUnitPrice())
-                            .subtotal(subtotal)
-                            .build();
-                })
+        // Converter DTO para Value Objects
+        CustomerId customerId = new CustomerId(orderRequest.getCustomerId());
+        List<OrderItem> items = orderRequest.getItems().stream()
+                .map(item -> OrderItem.create(
+                        item.getProductId(),
+                        item.getProductName(),
+                        item.getQuantity(),
+                        Money.of(item.getUnitPrice())
+                ))
                 .collect(Collectors.toList());
 
-        totalAmount = eventItems.stream()
-                .map(OrderCreatedEvent.OrderItem::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // Criar agregado Order (Event Sourcing)
+        Order order = Order.createOrder(customerId, items, correlationId, causationId);
+        UUID orderId = order.getId();
 
-        // Criar evento de domínio
-        OrderCreatedEvent orderCreatedEvent = OrderCreatedEvent.builder()
-                .orderId(orderId)
-                .customerId(orderRequest.getCustomerId())
-                .items(eventItems)
-                .totalAmount(totalAmount)
-                .timestamp(now)
-                .correlationId(correlationId)
-                .causationId(causationId)
-                .version(1)
-                .build();
+        // Persistir eventos no Event Store
+        List<DomainEvent> uncommittedEvents = order.getUncommittedEvents();
+        for (DomainEvent domainEvent : uncommittedEvents) {
+            persistEvent(domainEvent);
+            persistOutbox(domainEvent);
+        }
 
-        String eventData = JsonUtil.toJson(orderCreatedEvent);
+        // Marcar eventos como commitados
+        order.markEventsAsCommitted();
 
-        // Persistir evento no Event Store
+        log.info("Order created successfully with ID: {} and total amount: {}", 
+                orderId, order.getTotalAmount());
+
+        return orderId;
+    }
+
+    private void persistEvent(DomainEvent domainEvent) {
+        Object externalEvent = DomainEventMapper.toExternalEvent(domainEvent);
+        String eventData = JsonUtil.toJson(externalEvent);
+
         Event event = Event.builder()
-                .aggregateId(orderId)
-                .eventType("OrderCreated")
+                .aggregateId(domainEvent.getAggregateId())
+                .eventType(domainEvent.getEventType())
                 .eventData(eventData)
-                .correlationId(correlationId)
-                .causationId(causationId)
-                .version(1)
-                .createdAt(now)
+                .correlationId(domainEvent.getCorrelationId())
+                .causationId(domainEvent.getCausationId())
+                .version(domainEvent.getVersion())
+                .createdAt(domainEvent.getTimestamp())
                 .build();
 
         eventRepository.save(event);
-        log.debug("Event saved to Event Store: {}", event.getId());
+        log.debug("Event {} saved to Event Store with ID: {}", 
+                domainEvent.getEventType(), event.getId());
+    }
 
-        // Persistir no Outbox para publicação garantida
+    private void persistOutbox(DomainEvent domainEvent) {
+        Object externalEvent = DomainEventMapper.toExternalEvent(domainEvent);
+        String eventData = JsonUtil.toJson(externalEvent);
+
         Outbox outbox = Outbox.builder()
-                .aggregateId(orderId)
-                .eventType("OrderCreated")
+                .aggregateId(domainEvent.getAggregateId())
+                .eventType(domainEvent.getEventType())
                 .eventData(eventData)
-                .correlationId(correlationId)
-                .causationId(causationId)
-                .version(1)
-                .createdAt(now)
+                .correlationId(domainEvent.getCorrelationId())
+                .causationId(domainEvent.getCausationId())
+                .version(domainEvent.getVersion())
+                .createdAt(domainEvent.getTimestamp())
                 .processed(false)
                 .build();
 
         outboxRepository.save(outbox);
-        log.debug("Event saved to Outbox: {}", outbox.getId());
-
-        log.info("Order created successfully with ID: {} and total amount: {}", 
-                orderId, totalAmount);
-
-        return orderId;
+        log.debug("Event {} saved to Outbox with ID: {}", 
+                domainEvent.getEventType(), outbox.getId());
     }
 }
