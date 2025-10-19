@@ -1,0 +1,16 @@
+package com.ecommerce.saga.domain;
+
+public enum SagaStatus {
+    STARTED,
+    PAYMENT_PENDING,
+    PAYMENT_AUTHORIZED,
+    INVENTORY_PENDING,
+    INVENTORY_RESERVED,
+    SHIPPING_PENDING,
+    SHIPPING_SCHEDULED,
+    COMPLETED,
+    COMPENSATING,
+    COMPENSATION_COMPLETED,
+    FAILED
+}
+
