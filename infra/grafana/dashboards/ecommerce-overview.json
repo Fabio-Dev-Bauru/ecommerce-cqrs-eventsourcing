@@ -1,0 +1,85 @@
+{
+  "dashboard": {
+    "title": "E-commerce Overview",
+    "tags": ["ecommerce", "overview"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Total Orders Created",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(increase(http_server_requests_seconds_count{uri=\"/api/v1/orders\",method=\"POST\",status=\"201\"}[1h]))",
+            "legendFormat": "Orders"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Request Rate (req/s)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_requests_seconds_count[1m])) by (application)",
+            "legendFormat": "{{application}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 18, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Response Time (p95)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[1m])) by (application, le))",
+            "legendFormat": "{{application}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1m])) by (application)",
+            "legendFormat": "{{application}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Saga Status Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "count by (status) (saga_instance_status)",
+            "legendFormat": "{{status}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Kafka Consumer Lag",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sum(kafka_consumer_fetch_manager_records_lag) by (topic)",
+            "legendFormat": "{{topic}}"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 16, "x": 8, "y": 16}
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 1
+  }
+}
+
