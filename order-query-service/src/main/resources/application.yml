@@ -72,19 +72,16 @@ management:
   endpoint:
     health:
       show-details: always
-
-jwt:
-  secret: ${JWT_SECRET:ecommerce-cqrs-eventsourcing-super-secret-key-change-in-production-minimum-256-bits}
-  expiration: ${JWT_EXPIRATION:86400000}
-
-# Distributed Tracing com Zipkin
-management:
   tracing:
     sampling:
       probability: 1.0
   zipkin:
     tracing:
       endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}
+
+jwt:
+  secret: ${JWT_SECRET:ecommerce-cqrs-eventsourcing-super-secret-key-change-in-production-minimum-256-bits}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 ---
 spring:
