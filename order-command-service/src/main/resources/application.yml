@@ -71,6 +71,10 @@ management:
       prometheus:
         enabled: true
 
+jwt:
+  secret: ${JWT_SECRET:ecommerce-cqrs-eventsourcing-super-secret-key-change-in-production-minimum-256-bits}
+  expiration: ${JWT_EXPIRATION:86400000}
+
 ---
 spring:
   config:
