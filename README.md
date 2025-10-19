@@ -48,7 +48,27 @@ Sistema de e-commerce enterprise utilizando **CQRS**, **Event Sourcing**, **Saga
 
 ## 🚀 Como Executar
 
-### 1. Iniciar Infraestrutura
+### 1. Iniciar Infraestrutura (Automático)
+
+**Linux/Mac:**
+```bash
+chmod +x infra/scripts/setup-infrastructure.sh
+./infra/scripts/setup-infrastructure.sh
+```
+
+**Windows:**
+```powershell
+.\infra\scripts\setup-infrastructure.ps1
+```
+
+O script automático irá:
+- ✅ Subir todos os containers
+- ✅ Aguardar serviços estarem prontos
+- ✅ Configurar Debezium Connector
+- ✅ Criar tópicos Kafka
+- ✅ Validar health de todos os serviços
+
+### 1.1 Iniciar Infraestrutura (Manual)
 
 ```bash
 # Subir todos os serviços de infraestrutura
@@ -59,6 +79,12 @@ docker-compose ps
 
 # Ver logs
 docker-compose logs -f [service-name]
+
+# Configurar Debezium (após containers estarem prontos)
+cd infra/debezium
+./setup-debezium.sh  # Linux/Mac
+# ou
+.\setup-debezium.ps1  # Windows
 ```
 
 ### 2. Compilar e Executar Aplicação
