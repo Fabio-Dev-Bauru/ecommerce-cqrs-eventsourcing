@@ -7,7 +7,6 @@ services:
       POSTGRES_DB: order_command_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_INITDB_ARGS: "-c wal_level=logical -c max_replication_slots=4 -c max_wal_senders=4"
     command: 
       - "postgres"
       - "-c"
