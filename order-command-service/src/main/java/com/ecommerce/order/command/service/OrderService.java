@@ -93,6 +93,7 @@ public class OrderService {
 
         Outbox outbox = Outbox.builder()
                 .aggregateId(domainEvent.getAggregateId())
+                .aggregateType("Order")
                 .eventType(domainEvent.getEventType())
                 .eventData(eventData)
                 .correlationId(domainEvent.getCorrelationId())

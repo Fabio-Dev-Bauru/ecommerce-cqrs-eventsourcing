@@ -27,12 +27,12 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                // Permitir endpoints públicos
+                // Permitir endpoints públicos (temporário para testes)
                 .requestMatchers("/actuator/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/orders").permitAll()
                 
-                // Endpoints de comando requerem autenticação
-                .requestMatchers(HttpMethod.POST, "/api/v1/orders/**").hasAnyRole("USER", "ADMIN")
+                // Endpoints que requerem autenticação
                 .requestMatchers(HttpMethod.PUT, "/api/v1/orders/**").hasAnyRole("USER", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/v1/orders/**").hasRole("ADMIN")
                 

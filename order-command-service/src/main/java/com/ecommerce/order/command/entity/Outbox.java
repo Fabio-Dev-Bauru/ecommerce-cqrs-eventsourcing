@@ -28,6 +28,9 @@ public class Outbox {
     private UUID aggregateId;
 
     @Column(nullable = false)
+    private String aggregateType;
+
+    @Column(nullable = false)
     private String eventType;
 
     @Column(nullable = false, columnDefinition = "TEXT")
